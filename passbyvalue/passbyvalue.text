@@ -1,0 +1,103 @@
+# Introduction
+
+## Functions
+
+In C++ we can define our own functions. Functions perform some useful computation, can return a value, and can have side effects. Normally functions need take some arguments and perform its computation using those arguments. The syntax to define a function is pretty simple (but can get very complicated):
+
+````
+<type_returned> <function_name> ( <type_param1> <name_param1>, ..., <type_paramn> <name_paramn>)
+{
+    <function_body>
+}
+````
+
+for example, let's define a function that takes to integers and returns its average:
+
+````{.cpp}
+int average(int number1, int number2)
+{
+	return (number1 + number2)/2;
+}
+````
+
+This is pretty simple and easy to read and write. From now on things get a bit more complicated...
+
+# Values, references and pointers
+
+C++ gives great power to engineers becuase it provides high level abstractions, but it also allows them to manipulate things very close to the way the actual hardware operates. At the hardware level everything has a memory address and a length. We generally don't operate at that level and prefer to use variables. Variables abstract the need to think about memory and the way in which each type is represented, and allow us to directly access the value. This is pretty powerful. However C++ allows us to directly manipulate addresses by using the so called *pointers*.
+
+
+A pointer is simply the address of a value of a particular type in memory. A concep very closely related to pointers is the *reference*. References are pointers with lots of restrictions. Given a pointer we there is an operator to access its value, and given a variable that holds a value there is an operator to grab its address:
+
+```{.cpp}
+// This is a normal variable holding a value
+int a = 0;
+
+// Now we are creating a pointer. This pointer will hold the address of an integer
+int * pa;
+
+// Now we extract the address of a, and assing it to our integer pointer pa
+pa = &a;
+
+// Now we can access the value of a via the pointer
+int b = *pa;
+````
+
+Pointers are powerful but risky. If in the code above we modify the value of *a*, or the value pointed by pa, both variables will _see_ the change, since they both use the same memory address to store its value.
+
+
+_But what are these things good for?_ Well, they have several uses, but in this post we are going to focus on their usage when _feeding_ arguments to a function. There are 3 ways in which arguments may be passed to a function:
+
+* By value
+* By reference (we will talk about this one in a future post, but is really very similar to pass by pointer)
+* By pointer
+
+# Pass by Value
+
+Whenever we call a function all its arguments are copied into the stack and the function uses those values locally. For instance:
+
+````{.cpp}
+int avg = average(2, 8);
+````
+
+* First the two arguents, (2, 8), are copied into the stack
+* The calculations are executed using the copy that was created in the stack
+* The result is copied into a temporary variable in the stack
+* The result is used to initialize avg
+* All local copies and temporary variables are deleted (for the most part)
+
+During the time the function is executing there are two different memory locations holding the value 2, and two different locations holding the value 8. This is perfectly fine for small types, but if we have a list with thousands of elements, copying it in and out of a function is going to slow down our application a lot. _What can we do?_ Well, what if instead of the value we passed the address where the value is stored? This is what is called pass by pointer.
+
+# Pass by Pointer
+
+What if instead of the value we passed the address where the value is stored? This way instead of having to copy thousands of elements, we could just copy the address where those elements are stored and then we just access the value int the function:
+
+````{.cpp}
+int function(VeryBigType * v) {
+    return (*VeryBigType.size())/2;
+}
+````
+
+* Notice how we define the parameter to be a pointer. This function does not accept _values_ of type VeryBigType, it accept the memory address of one such value.
+* Instead of creating a copy of this VeryBigType, we just create a copy of its address, this is going to be either 32 or 64 bits, which in nothing compared with thousands of bytes.
+
+How do we call a function that takes a pointer as an argument:
+
+````{.cpp}
+VeryBigValue x;
+
+int x = function(&x);
+````
+
+We just need to use the operator to extract the address of the *x* variable. Simple and useful. Again, this is not free. By passing a variable by pointer the function can modify the value of the variable outside the function. This can lead to very difficult to find bugs.
+
+# Conclusion
+
+Another way to think about all this is that C++ always passes by value, but there are different types of variables:
+
+* Value variable: Represents a particular value, and when copied the entire value has to be copied
+* Pointer/Reference value: Represents a memory location where a value of a particular type is stored. When copied only the address is copied, and any modifications performed to the copy also affect the original value.
+
+I hope you enjoyed this post. There is not much code but don't worry, we will see more code and usefulness in the following posts.
+
+Enjoy!

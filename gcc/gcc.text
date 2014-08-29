@@ -1,0 +1,62 @@
+GCC, the GNU Compiler Collection, is the leader open source compiler. We are going to use it to compile C++ code, but it can also compile C, Fortran, Objective-C, Ada, and others.
+
+# Linux
+
+If you are using any flavor of Linux, changes are that your distribution comes with GCC bundled in it. Try the following:
+
+````bash
+>gcc -v
+
+Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/i486-linux-gnu/4.7/lto-wrapper
+Target: i486-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Debian 4.7.2-5' --with-bugurl=file:///usr/share/doc/gcc-4.7/README.Bugs --enable-languages=c,c++,go,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.7 --enable-shared --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.7 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --enable-plugin --enable-objc-gc --enable-targets=all --with-arch-32=i586 --with-tune=generic --enable-checking=release --build=i486-linux-gnu --host=i486-linux-gnu --target=i486-linux-gnu
+Thread model: posix
+gcc version 4.7.2 (Debian 4.7.2-5)
+````
+
+_What do I do if my system does not have GCC?_ If you are using Ubuntu or Debian, query the packages database:
+
+````bash
+>sudo apt-cache search gcc
+...
+gcc-4.7 - GNU C compiler
+gcc-4.7-base - GCC, the GNU Compiler Collection (base package)
+gcc-4.7-locales - GCC, the GNU compiler collection (native language support files)
+gcc-4.7-multilib - GNU C compiler (multilib files)
+gcc-4.7-plugin-dev - Files for GNU GCC plugin development.
+gcc-4.7-source - Source of the GNU Compiler Collection
+gcc-4.4-doc - documentation for the GNU compilers (gcc, gobjc, g++)
+...
+````
+
+If the output you get looks anywhere similar to the above you can proceed to install GCC executing the following:
+
+````bash
+>sudo apt-get update
+>sudo apt-get install build-essential 
+````
+
+Other Linux distributions use othe package managers, but the process is analogous.
+
+# Mac OS
+
+Follow the instructions provided in the link:
+
+<http://www.mkyong.com/mac/how-to-install-gcc-compiler-on-mac-os-x/>
+
+# Windows
+
+My recommendation here is plain and simple, *do not use Windows*. I know this is not an option for many people, so my recommendation number 2 is to run Linux in a virtual machine inside Windows. [Vagrant](www.vagrantup.com) and [VirtualBox](www.virtualbox.org) can be used together to provision local Virtual Machines in a super straight forward way. Both are excellent open source tools.
+
+
+Another possibility is to sign up for the **free [Amazon AWS account](http://aws.amazon.com/free/)**. You can use a Virtual Machine in the cloud for 1 year absolutely free. Check it out, it is pretty cool. Amazon Virtual Computing resources are called [EC2](http://aws.amazon.com/ec2/).
+
+
+If you still want to continue using Windows, I have not very good news for you. There is no version of GCC that is able to run natively in Windows. In order to install GCC you have to install either [MingGW](www.mingw.org) or [Cygwin](www.cygwin.com). There two project provide ports to Windows of many useful Linux tools.
+
+
+# Wrapping up
+
+You should be all set now. Make sure you are able to compile and run our [C++ Hello World](http://cplusplusbaremetal.blogspot.ie/2014/08/hello-world-in-c-cpp-hello-world.html) program.
