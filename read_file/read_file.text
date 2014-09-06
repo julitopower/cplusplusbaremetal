@@ -1,0 +1,137 @@
+![](http://www.iconsdb.com/icons/preview/black/text-file-3-xxl.png)
+
+# Introduction
+
+One of the most frequent operations performed in any program is reading and writing files. We read files to load configuration, to load data for further processing, to load maps and entities in a game, etc. We write to files in order to generate report, log information as the application runs, persist the state of the application, etc.
+
+Standard C++ provides two kinds of APIs for reading and writting files. One of them is a low level API inherited from C, whereas the other involve the use of IO Streams. IO Streams are generally the recommended, safer way to read and write files.
+
+# Step by step
+
+Regardless of the specific library we choose, there are a set of steps that must always be performed in order to interact with files:
+
+* **Get a handle** to the actual file. The handle will need to know wheter we intend to read or write or both, and wheter the file contains text or binary data.
+* Perform whatever operations we need to or via the handle
+* Make sure all modifications are actually **flushed** to disk
+* **Close** the handle
+
+# Reading a file
+## Low level way
+
+````{.cpp}
+#include <cstdio>
+#include <iostream>
+
+using namespace std;
+
+int main(int argc, char** argv)
+{
+  // Let's make sure that a file path has been provided.
+  // Keep in mind that argv[0] is always the name of the
+  // program itself.
+  if (argc < 2) {
+    cout << "A path to a file must be provided" << endl;
+    return 0;
+  }
+  
+  cout << "Attempting to read file " << argv[1] << endl;
+
+  // Get a handle to the file in read mode
+  FILE* f = fopen(argv[1], "r");
+  // If something goes wrong the handle gets initialized
+  // Null
+  if (f == 0) {
+    cout << "Error while opening file" << endl;
+    return 0;
+  }
+
+  // Now we read the file character by character until
+  // we git the end of the file, which is represented
+  // by EOF defined in cstdio
+  int c;
+  while((c = fgetc(f)) != EOF) {
+    cout << char(c);
+  }
+
+  // Cleaning up
+  fflush(f);
+  fclose(f);
+  return 1;
+}
+````
+
+Let's compile and execute this code:
+
+````{.bash}
+> gcc main.cpp -lstdc++ -o readfile
+>./readfile main.cpp
+Attempting to read file main.cpp
+#include <cstdio>
+#include <iostream>
+
+using namespace std;
+
+int main(int argc, char** argv)
+...
+
+>
+````
+
+That wasn't too hard, was it?
+
+## Using IO Streams
+
+````{.cpp}
+#include <iostream>
+#include <fstream>
+
+using namespace std;
+
+int main(int argc, char** argv) {
+  // Let's make sure that a file path has been provided.
+  // Keep in mind that argv[0] is always the name of the
+  // program itself.
+  if (argc < 2) {
+    cout << "A path to a file must be provided" << endl;
+    return 0;
+  }
+  
+  cout << "Attempting to read file " << argv[1] << endl;
+
+  // Create an Input File Stream, with input mode
+  ifstream is(argv[1], ifstream::in);
+
+  // Check that the stream was correctly created
+  if(!is.good()) {
+    cout << "Error while opening file" << endl;
+    return 0;    
+  }
+
+  // Read and print until the end of the file
+  char c = is.get();
+  while (is.good()) {
+    cout << c;
+    c = is.get();
+  }
+
+  // Cleanup
+  is.close();
+  return 1;
+}
+````
+
+Now you can compile it and run it as before, and you'll get the same results. The API of the IO Streams is Object Oriented, and internally makes heavy use of the standard libray, which is heavily optimized. It is easier to not make mistakes with **ifstream** than with **cstdio**.
+
+# Where do we go from here
+
+In the next post we will be writing a few simple applications to:
+
+* Count the number of lines on a file
+* Count the number of words on a file
+* Count the number of unique words on a file
+* Count sort and print the number of unique words on a file
+
+Stay tuned!
+
+
+Dont forget that all the code is available in github: [https://github.com/julitopower/cplusplusbaremetal](https://github.com/julitopower/cplusplusbaremetal)
