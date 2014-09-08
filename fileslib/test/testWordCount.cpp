@@ -13,6 +13,6 @@ BOOST_AUTO_TEST_CASE( testFileDoesNotExist )
 
 BOOST_AUTO_TEST_CASE( testWordsCount )
 {
-  BOOST_CHECK_EQUAL(4, countWords("./dummyfile"));
+  BOOST_CHECK_EQUAL(6, countWords("./dummyfile"));
 }
 

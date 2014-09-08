@@ -8,12 +8,11 @@ set(TEST_LIBRARIES
   fileslib
   )
 
-set(TEST_FILES testLineCount.cpp)
 file(COPY dummyfile DESTINATION .)
 
-add_executable(tLineCount ${TEST_FILES})
+add_executable(tLineCount testLineCount.cpp)
 target_link_libraries(tLineCount ${TEST_LIBRARIES})
-add_executable(tWordCount ${TEST_FILES})
+add_executable(tWordCount testWordCount.cpp)
 target_link_libraries(tWordCount ${TEST_LIBRARIES})
 
 add_test(testLineCount tLineCount)
