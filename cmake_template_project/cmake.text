@@ -1,0 +1,382 @@
+# Build Systems
+
+Build systems are a fundamental part of modern software development. Build systems allow to automate several aspects:
+
+* Dependency management
+* Compilation
+* Multiplatform compilation
+* Testing
+* Packing of binaries and associated resources
+* Deployment
+* Static analysis of code
+
+
+Virtually every serious compiled language has at least one decent build system:
+
+* Haskell has [Cabal](http://www.haskell.org/cabal/)
+* Java has [ant](http://ant.apache.org/), [maven](http://maven.apache.org/), ...
+* C++ has [make](http://www.gnu.org/software/make/), [cmake](http://www.cmake.org/), [scons](http://www.scons.org/), [automake](http://www.gnu.org/software/automake/), ...
+* .Net plaform has [Nant](http://nant.sourceforge.net/)
+* ...
+
+There is a long list of build automation software in the [wikipedia](http://en.wikipedia.org/wiki/List_of_build_automation_software).
+
+# Build systems for C++
+
+Every software engineer wannabe starts by simply _invoking the compiler from the command line_. It works well for small projects, but as soon as the project grows to contain a few comilation units it becomes impractical.
+
+
+Next step is to start looking into *make* and the glorious _[makefile](http://www.gnu.org/software/make/manual/make.html#Introduction)_. A makefile is a script on how to build the system. It allows to define different targets and its dependencies, and it works pretty well for small projects. The problem is that its syntax is truly aweful, and it becomes extremely hard to maintain. Besides, makefiles can contain very complicated logic, that should never make it into the build process. But we all know that when there is a feature, there will be people abussing it.
+
+Make and makefiles are really really powerful but very difficult to write and maintain. _Wouldn't it be awesome if we had a simple tool that could generate those glorious makefiles for us?_ Yes indeed, there are several tools to do that. One of the earliest ones is call *automake*. In this occasion it syntax, and its somehow outdated tools make it a difficult choice for modern projects. There are lots of Open Source projects that rely on automake and autotools.
+
+_It seems that we are running out of options!_ Don't panic, now is when I get to introduce a trully modern build system, with again a peculiar syntax, but much more manageable than its predecessors. Meet *CMake*.
+
+# CMake
+
+CMake is a set of tools that allow us to define how to build a project, its dependencies and so on. So far nothing new. However CMake is not a build system itself, it generates the artifacts necessary to build using other build systems. This means that we can define how to build our project once, and then use CMake generators to get a makefile, or an Eclipse project, or a Visual Studio project, and many other. In fact we can write our own generators.
+
+Basic tasks like compiling an executable, check that a particular library is present in the system, or building a set of libraries, are pretty simple with CMake. Once one need to start doing more complicated stuffs things get a bit messy. [CMake's systax](http://www.cmake.org/cmake/help/v2.8.8/cmake.html) doesn't ressemble anything we modern software engineers are used to, well maybe a bad mutation of Shell scripting.
+
+## Talking to CMake: CMakeLists.txt
+
+The way to tell CMake what to do is to create files called CMakeLists.txt all over your project tree. These files can _include_ each other, and together are the recipe used to build/test/deploy your project. Let's see how one of those files look like:
+
+````{.cmake}
+# Specify the minimum CMAKE version required
+cmake_minimum_required(VERSION 2.8)
+
+# Your project's name
+project(files_library)
+
+# We use BOOST unit test framework, so we need to specify it
+# This line guarantee that Boost is present and creates
+# a couple of variable that come in handy when linking to
+# boost related libraries
+find_package(Boost 1.4 COMPONENTS unit_test_framework)
+enable_testing()
+
+# Make your header file accessible to the compiler
+include_directories(./include)
+
+# Instruct CMake to inspect the following subfolders
+add_subdirectory(src)
+add_subdirectory(apps)
+add_subdirectory(test)
+````
+
+We first define the mimimun version of CMake required. CMake will abort the processing if this requirement is not met. Then we define our project's name, and specify that the Boost library must be present in the system. Next step is to enable testing, and to tell CMake that we have header files in the _include_ directory. The last thing we do here, is to include other CMakeLists.txt files, but pointing CMake to the directories containing it. Let's see now the contents of the _src_ CMakeLists.txt:
+
+````{.cmake}
+set (SRC fizzbuzz.cpp)
+
+# Define our fizzbuzz library. Our library does not have
+# any dependencies
+add_library(fizzbuzzlib ${SRC})
+````
+
+This is pretty simple, we first assing a value to the variable SRC. The variable SRC is going to containt the name of our source files. Then we tell CMake that we want to compile a library called fizzbuzzlib using the contents of the variable SRC. Nice huh? Let's see the contents of _app_ where we tell CMake how to make an executable that depends on fizzbuzzlib:
+
+````{.cmake}
+# Define an executable and the libraries in depends on
+add_executable(fizzbuzz main.cpp)
+target_link_libraries(fizzbuzz fizzbuzzlib)
+````
+
+Notice how we now tell CMake to create an executable called fizzbuzz from a particular source file, instead of using a variable. Next thing we specify that the executable has to be linked with the fizzbuzzlib library.
+
+This is all pretty sweet, but how do we use it, you may be wondering? Let me first introduce you to the complete CMake template project we will be using in future posts, and then I'll explain you the two types of builds we can perform with CMake, in-source and out-of-source.
+
+## CMake template project
+
+Take a couple of minutes to study the following project structure. This is a template project so its actuall C++ code is not the relevant part here. It just contains a library to solve the fizzbuzz problem, and application that uses that library, and a set of tests:
+
+````{.bash}
+.
+|-- CMakeLists.txt
+|-- apps
+|   |-- CMakeLists.txt
+|   `-- main.cpp
+|-- cmake.text
+|-- include
+|   `-- fizzbuzz.hpp
+|-- src
+|   |-- CMakeLists.txt
+|   |-- fizzbuzz.cpp
+|   `-- main.cpp
+`-- test
+    |-- CMakeLists.txt
+    `-- testFizzBuzz.cpp
+
+4 directories, 10 files
+````
+
+A more detailed view:
+
+````{.bash}
+.
+./apps
+./apps/main.cpp
+./apps/CMakeLists.txt
+./include
+./include/fizzbuzz.hpp
+./test
+./test/testFizzBuzz.cpp
+./test/CMakeLists.txt
+./src
+./src/fizzbuzz.cpp
+./src/main.cpp
+./src/CMakeLists.txt
+./.cpp_aliases
+./CMakeLists.txt
+````
+
+In the root folder we have a CMakeLists.txt that initializes the project and includes the rest of the subdirectories. This is the first CMakeLists.txt file I showed you before. The project has other CMakeLists.txt files in the _app_, _src_ and _test_ folder, that tell CMake what to do to build the library, the tests and the application. Not it is time to clone all this from [github](https://github.com/julitopower/cplusplusbaremetal):
+
+````{.bash}
+>git clone https://github.com/julitopower/cplusplusbaremetal.git
+>cd cmake_project_template
+````
+
+## Building with CMake
+
+### In-source build
+
+In-source build means that all the build artifacts will be in the same folders as our source code, resources and so on. I personally find this not very practicall, specially when your code (as it should) is under version control. It takes too much time what are the things you want to keep under source control, and what are simple build artifacts.
+
+*How do we do it?* Simply call CMake in the root directory where the _master_ CMakeLists.txt file is:
+
+````{.bash}
+cmake .
+-- The C compiler identification is GNU 4.7.2
+-- The CXX compiler identification is GNU 4.7.2
+-- Check for working C compiler: /usr/bin/gcc
+-- Check for working C compiler: /usr/bin/gcc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Boost version: 1.55.0
+-- Found the following Boost libraries:
+--   unit_test_framework
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/julio/cpp/cplusplusbaremetal/cmake_template_project
+````
+
+By default CMake uses the _make_ generator, so to actually build the project we invoke make:
+
+````{.bash}
+>make
+Scanning dependencies of target fizzbuzzlib
+[ 33%] Building CXX object src/CMakeFiles/fizzbuzzlib.dir/fizzbuzz.cpp.o
+Linking CXX static library libfizzbuzzlib.a
+[ 33%] Built target fizzbuzzlib
+Scanning dependencies of target fizzbuzz
+[ 66%] Building CXX object apps/CMakeFiles/fizzbuzz.dir/main.cpp.o
+Linking CXX executable fizzbuzz
+[ 66%] Built target fizzbuzz
+Scanning dependencies of target tFizzBuzz
+[100%] Building CXX object test/CMakeFiles/tFizzBuzz.dir/testFizzBuzz.cpp.o
+Linking CXX executable tFizzBuzz
+[100%] Built target tFizzBuzz
+
+>make test
+make test
+Running tests...
+Test project /home/julio/cpp/cplusplusbaremetal/cmake_template_project
+    Start 1: testFizzBuzz
+    1/1 Test #1: testFizzBuzz .....................   Passed    0.04 sec
+
+    100% tests passed, 0 tests failed out of 1
+
+    Total Test time (real) =   0.04 sec
+    
+>apps/fizzbuzz
+Introduce a Value> 3
+Fizz
+Introduce a Value> 5
+Buzz
+Introduce a Value> 15
+FizzBuzz
+Introduce a Value> -1
+````
+
+Awesome! We have build our project, executed that tests and run the application. No pain at all!. However with in-source build, all our source folder are full of _rubish_ now:
+
+````{.bash}
+.
+./CTestTestfile.cmake
+./cmake_install.cmake
+./cmake.text
+./Testing
+./Testing/Temporary
+./Testing/Temporary/LastTest.log
+./Testing/Temporary/CTestCostData.txt
+./apps
+./apps/CTestTestfile.cmake
+./apps/cmake_install.cmake
+./apps/main.cpp
+./apps/fizzbuzz
+./apps/CMakeFiles
+./apps/CMakeFiles/CMakeDirectoryInformation.cmake
+./apps/CMakeFiles/fizzbuzz.dir
+./apps/CMakeFiles/fizzbuzz.dir/depend.internal
+./apps/CMakeFiles/fizzbuzz.dir/flags.make
+./apps/CMakeFiles/fizzbuzz.dir/DependInfo.cmake
+./apps/CMakeFiles/fizzbuzz.dir/depend.make
+./apps/CMakeFiles/fizzbuzz.dir/link.txt
+./apps/CMakeFiles/fizzbuzz.dir/main.cpp.o
+./apps/CMakeFiles/fizzbuzz.dir/progress.make
+./apps/CMakeFiles/fizzbuzz.dir/CXX.includecache
+./apps/CMakeFiles/fizzbuzz.dir/build.make
+./apps/CMakeFiles/fizzbuzz.dir/cmake_clean.cmake
+./apps/CMakeFiles/progress.marks
+./apps/Makefile
+./apps/CMakeLists.txt
+./include
+./include/fizzbuzz.hpp
+./test
+./test/CTestTestfile.cmake
+./test/cmake_install.cmake
+./test/CMakeFiles
+./test/CMakeFiles/tFizzBuzz.dir
+./test/CMakeFiles/tFizzBuzz.dir/depend.internal
+./test/CMakeFiles/tFizzBuzz.dir/flags.make
+./test/CMakeFiles/tFizzBuzz.dir/DependInfo.cmake
+./test/CMakeFiles/tFizzBuzz.dir/depend.make
+./test/CMakeFiles/tFizzBuzz.dir/link.txt
+./test/CMakeFiles/tFizzBuzz.dir/progress.make
+./test/CMakeFiles/tFizzBuzz.dir/CXX.includecache
+./test/CMakeFiles/tFizzBuzz.dir/testFizzBuzz.cpp.o
+./test/CMakeFiles/tFizzBuzz.dir/build.make
+./test/CMakeFiles/tFizzBuzz.dir/cmake_clean.cmake
+./test/CMakeFiles/CMakeDirectoryInformation.cmake
+./test/CMakeFiles/progress.marks
+./test/Makefile
+./test/testFizzBuzz.cpp
+./test/tFizzBuzz
+./test/CMakeLists.txt
+./src
+./src/CTestTestfile.cmake
+./src/fizzbuzz.cpp
+./src/cmake_install.cmake
+./src/main.cpp
+./src/CMakeFiles
+./src/CMakeFiles/fizzbuzzlib.dir
+./src/CMakeFiles/fizzbuzzlib.dir/depend.internal
+./src/CMakeFiles/fizzbuzzlib.dir/flags.make
+./src/CMakeFiles/fizzbuzzlib.dir/DependInfo.cmake
+./src/CMakeFiles/fizzbuzzlib.dir/depend.make
+./src/CMakeFiles/fizzbuzzlib.dir/link.txt
+./src/CMakeFiles/fizzbuzzlib.dir/progress.make
+./src/CMakeFiles/fizzbuzzlib.dir/cmake_clean_target.cmake
+./src/CMakeFiles/fizzbuzzlib.dir/fizzbuzz.cpp.o
+./src/CMakeFiles/fizzbuzzlib.dir/CXX.includecache
+./src/CMakeFiles/fizzbuzzlib.dir/build.make
+./src/CMakeFiles/fizzbuzzlib.dir/cmake_clean.cmake
+./src/CMakeFiles/CMakeDirectoryInformation.cmake
+./src/CMakeFiles/progress.marks
+./src/libfizzbuzzlib.a
+./src/Makefile
+./src/CMakeLists.txt
+./CMakeCache.txt
+./CMakeFiles
+./CMakeFiles/CMakeCXXCompiler.cmake
+./CMakeFiles/CompilerIdCXX
+./CMakeFiles/CompilerIdCXX/a.out
+./CMakeFiles/CompilerIdCXX/CMakeCXXCompilerId.cpp
+./CMakeFiles/CMakeCCompiler.cmake
+./CMakeFiles/CMakeTmp
+./CMakeFiles/CMakeDetermineCompilerABI_CXX.bin
+./CMakeFiles/CMakeSystem.cmake
+./CMakeFiles/CMakeDirectoryInformation.cmake
+./CMakeFiles/cmake.check_cache
+./CMakeFiles/CMakeOutput.log
+./CMakeFiles/CMakeDetermineCompilerABI_C.bin
+./CMakeFiles/progress.marks
+./CMakeFiles/Makefile.cmake
+./CMakeFiles/TargetDirectories.txt
+./CMakeFiles/CompilerIdC
+./CMakeFiles/CompilerIdC/CMakeCCompilerId.c
+./CMakeFiles/CompilerIdC/a.out
+./CMakeFiles/Makefile2
+./Makefile
+./.#cmake.text
+./.cpp_aliases
+./CMakeLists.txt
+````
+
+This is not cool at all, and for that reason I prefer out of source build.
+
+### Out-of-source build
+
+The idea is simple, create a folder call, for instance, build under your root folder and then run CMake there but pointing to the root folder:
+
+````{.bash}
+>mkdir build
+>cd build
+>cmake ..
+-- The C compiler identification is GNU 4.7.2
+-- The CXX compiler identification is GNU 4.7.2
+-- Check for working C compiler: /usr/bin/gcc
+-- Check for working C compiler: /usr/bin/gcc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Boost version: 1.55.0
+-- Found the following Boost libraries:
+--   unit_test_framework
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/julio/cpp/cplusplusbaremetal/cmake_template_project/build
+
+>make
+Scanning dependencies of target fizzbuzzlib
+[ 33%] Building CXX object src/CMakeFiles/fizzbuzzlib.dir/fizzbuzz.cpp.o
+Linking CXX static library libfizzbuzzlib.a
+[ 33%] Built target fizzbuzzlib
+Scanning dependencies of target fizzbuzz
+[ 66%] Building CXX object apps/CMakeFiles/fizzbuzz.dir/main.cpp.o
+Linking CXX executable fizzbuzz
+[ 66%] Built target fizzbuzz
+Scanning dependencies of target tFizzBuzz
+[100%] Building CXX object test/CMakeFiles/tFizzBuzz.dir/testFizzBuzz.cpp.o
+Linking CXX executable tFizzBuzz
+[100%] Built target tFizzBuzz
+
+>make test
+Running tests...
+Test project /home/julio/cpp/cplusplusbaremetal/cmake_template_project/build
+    Start 1: testFizzBuzz
+    1/1 Test #1: testFizzBuzz .....................   Passed    0.02 sec
+
+    100% tests passed, 0 tests failed out of 1
+
+    Total Test time (real) =   0.02 sec
+
+>apps/fizzbuzz
+Introduce a Value> 3
+Fizz
+Introduce a Value> 5
+Buzz
+Introduce a Value> 15
+FizzBuzz
+Introduce a Value> -1
+````
+
+Same effect, but now our source tree is prefectly clean. We can remove the build folder at any time, there is no risk involved.
+
+There are folders in our github repository that use CMake, feel free to give them a look: [https://github.com/julitopower/cplusplusbaremetal](https://github.com/julitopower/cplusplusbaremetal)
+
+# Conclusion
+
+From now on I will be using CMake for all our projects. All the CMakeLists.txt files will be provided in github, and I'll be introducing CMake features as they become needed.
+
+CMake is an extremely versatile and powerful meta-build system. Another major advantage is that it is multiplatform. Pretty much all the projects that we are going to be developing will compile successfully in Linux, Mac and Windows, with the help of CMake, and your favourite compiler.
+
