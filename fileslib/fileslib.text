@@ -1,0 +1,436 @@
+# Having fun with Files in C++
+
+## Introduction
+
+In a recent post we saw [how to read a file using C++ standard library](http://cplusplusbaremetal.blogspot.com/2014/09/how-to-read-file-in-c.html). The standard library provides a wealth of performant implementations of data structures and algorithms that allows us to carry out more interesting computations than simply displaying on the screen the contents of a file. In this post we are going to see how to:
+
+* Count the number of words in a file
+* Count the number of lines in a file
+* Print the unique words in a file.
+
+As usual all the code used in this post as well as the post itself, can be found in [GitHub](https://github.com/julitopower/cplusplusbaremetal/tree/master/fileslib).
+
+## Count the number of words in a file
+
+The algorithm to count the number of lines in a file is based on counting the number of times the "_break line_" appears in the file and then adding one to that count. Its [computational complexity](http://en.wikipedia.org/wiki/Big_O_notation) is linear with the number of characters in the file, or **O(n)**, where n is the number of characters in the file. The actual code looks as follows:
+
+````{.cpp}
+  int countLines(std::string filePath) {
+    // Open file and make sure is a valid one
+    std::ifstream is(filePath.c_str());
+    if(!is.good())
+      return 0;
+
+    // Parse the file charater by character looking for
+    // breakline, '\n'
+    int linesCounter = 0;
+    char c = is.get();
+    while(is.good()) {
+      linesCounter += (c == '\n') ? 1 : 0; 
+      c = is.get();
+    }
+
+    is.close();
+
+    // Return the number of times the '\n' character appears plus one
+    return linesCounter + 1;
+  }
+````
+
+## Count the number of words in a file
+
+In this case the algorithm is a bit more complicated, but not a lot more. First we define a set of characters that are used as word delimiters. In our case we choose the space, tab, and newline characters. We also define a flag to indicate whether we are in the middle of a word or not. We use this flag to discard consecutive word delimiter characters, like 3 consecutive spaces. The entire algorithm looks as follows:
+
+_"The number of words is the number of times we find a delimiter right after a non delimiter character. If the file finishes and the last character read was a non delimiter, then add one to the number of words"._
+
+This algorithm also has linear comlexity with the number of characters in the file, **O(n)**. Let's see how the code looks like:
+
+````{.cpp}
+  int countWords(std::string filePath) {
+    // Open the file and make sure it is a valid one
+    std::ifstream is(filePath.c_str());
+    if(!is.good())
+      return 0;
+
+    // Initialize flags and counters
+    int wordsCounter = 0;
+    bool inWord = false;
+
+    // Read the file one by one
+    char c = is.get();
+    while(is.good()) {
+      if ((c == ' ' ||  c == '\t' || c =='\n')) {
+	if(inWord) {
+	  // Found a delimiter right after a non delimiter, increment counter
+	  inWord = false;
+	  ++wordsCounter;
+	}
+      } else {
+	// Found a non delimiter
+	inWord = true;
+      }
+      c = is.get();
+    }
+
+    // File finished while we were reading a word, increment counter
+    if(inWord)
+      wordsCounter++;
+
+    is.close();
+    return wordsCounter;
+  }
+````
+
+## Print the set of unique words in a file
+
+The idea here is to find all the different files used in a file, and print them. For example if the input file contains:
+
+````{.bash}
+word1 word2
+word1
+````
+
+We expect the output to be
+
+````{.bash}
+word1
+word2
+````
+
+As you can see all duplicates are removed. In order to achieve this we are going to use one of the data structures provided by the standard library, the [Set](http://www.cplusplus.com/reference/set/set/). A set models the concept of a mathematical set, and one of its most important properties is that a set does not contain duplicates. When we insert an element on a Set, it will be not added again if it is already present. C++ sets are backed by self balancing tress, and the cost (or computational complexity) of inserting an element is **O(log n)**, being n the number of elements currently in the tree, which is pretty good. The algorithm in this case is pretty simple:
+
+_"Introduce each of the words found in the file into a Set, and then print the contents of the Set."_
+
+The complexity of the whole algorithm is **n * Log(n)**, where n is either the number of characters of the number of words. And the code looks as follows:
+
+````{.cpp}
+  void printUniqueWords(std::string filePath){
+    // Open file and make sure is valid
+    std::ifstream is(filePath.c_str());
+    if(!is.good())
+      return;
+
+    // Initialize the set
+    std::set<std::string> words;
+
+    // We use a stingstream to accumulate the characters of a running word
+    std::stringstream ss;
+    bool inWord = false;
+    char c = is.get();
+    while(is.good()) {
+      if ((c == ' ' ||  c == '\t' || c =='\n')) {
+	if (inWord) {
+	  // End of word detected, add word to the Set
+	  words.insert(ss.str());
+	  ss.clear();
+	  ss.str(std::string());
+	  inWord = false;
+	}
+      } else {
+	// Add character to current word
+	ss << c;
+	inWord = true;
+      }
+      c = is.get();
+    }
+
+    // We reached the end of a file whie reading a work, add it to the set
+    if(inWord) {
+      words.insert(ss.str());
+    }
+
+    is.close();
+
+    // Finally print the contents of the set, traversing it using an iterator
+    for(std::set<std::string>::iterator it = words.begin() ; it != words.end() ; ++it) {
+      std::cout << *it << std::endl;
+    }
+  }
+````
+
+## Putting it all together
+
+In order to build a working example of the files library we are going to define a header file with prototypes of the function, an actual source file containing the implementation of the libraries functions, and an executable application using the library.
+
+The header file "files.hpp":
+
+````{.cpp}
+#ifndef FILES
+#define FILES
+#include <string>
+
+namespace files {
+
+  void printFile(std::string filePath);
+
+  int countLines(std::string filePath);
+
+  int countWords(std::string filePath);
+
+  void printUniqueWords(std::string filePath);
+};
+
+#endif
+````
+
+The implementation file "files.cpp"
+
+````{.cpp}
+#include <files.hpp>
+#include <iostream>
+#include <fstream>
+#include <set>
+#include <sstream>
+
+namespace files {
+
+  void printFile(std::string filePath) {
+    std::ifstream is(filePath.c_str());
+    if(!is.good())
+      return;
+
+    char c = is.get();
+    while(is.good()) {
+      std::cout << c;
+      c = is.get();
+    }
+
+    is.close();
+  }
+
+  int countLines(std::string filePath) {
+    // Open file and make sure is a valid one
+    std::ifstream is(filePath.c_str());
+    if(!is.good())
+      return 0;
+
+    // Parse the file charater by character looking for
+    // breakline, '\n'
+    int linesCounter = 0;
+    char c = is.get();
+    while(is.good()) {
+      linesCounter += (c == '\n') ? 1 : 0; 
+      c = is.get();
+    }
+
+    is.close();
+
+    // Return the number of times the '\n' character appears plus one
+    return linesCounter + 1;
+  }
+
+  int countWords(std::string filePath) {
+    // Open the file and make sure it is a valid one
+    std::ifstream is(filePath.c_str());
+    if(!is.good())
+      return 0;
+
+    // Initialize flags and counters
+    int wordsCounter = 0;
+    bool inWord = false;
+
+    // Read the file one by one
+    char c = is.get();
+    while(is.good()) {
+      if ((c == ' ' ||  c == '\t' || c =='\n')) {
+	if(inWord) {
+	  // Found a delimiter right after a non delimiter, increment counter
+	  inWord = false;
+	  ++wordsCounter;
+	}
+      } else {
+	// Found a non delimiter
+	inWord = true;
+      }
+      c = is.get();
+    }
+
+    // File finished while we were reading a word, increment counter
+    if(inWord)
+      wordsCounter++;
+
+    is.close();
+    return wordsCounter;
+  }
+
+  void printUniqueWords(std::string filePath){
+    // Open file and make sure is valid
+    std::ifstream is(filePath.c_str());
+    if(!is.good())
+      return;
+
+    // Initialize the set
+    std::set<std::string> words;
+
+    // We use a stingstream to accumulate the characters of a running word
+    std::stringstream ss;
+    bool inWord = false;
+    char c = is.get();
+    while(is.good()) {
+      if ((c == ' ' ||  c == '\t' || c =='\n')) {
+	if (inWord) {
+	  // End of word detected, add word to the Set
+	  words.insert(ss.str());
+	  ss.clear();
+	  ss.str(std::string());
+	  inWord = false;
+	}
+      } else {
+	// Add character to current word
+	ss << c;
+	inWord = true;
+      }
+      c = is.get();
+    }
+
+    // We reached the end of a file whie reading a work, add it to the set
+    if(inWord) {
+      words.insert(ss.str());
+    }
+
+    is.close();
+
+    // Finally print the contents of the set, traversing it using an iterator
+    for(std::set<std::string>::iterator it = words.begin() ; it != words.end() ; ++it) {
+      std::cout << *it << std::endl;
+    }
+  }
+
+} 
+````
+
+The executable example "main.cpp":
+
+````{.cpp}
+#include <files.hpp>
+#include <iostream>
+
+int main(int argc, char** argv) {
+  if (argc < 2) {
+    std::cout << "Must provide a file" << std::endl;
+    return 0;
+  }
+
+  files::printFile(argv[1]);
+  std::cout << "Lines found: " << files::countLines(argv[1]) << std::endl;
+  std::cout << "Words found: " << files::countWords(argv[1]) << std::endl;
+  std::cout << "Unique words found:" << std::endl;
+  files::printUniqueWords(argv[1]);
+}
+````
+
+Compile the code:
+
+````{.bash}
+>gcc -c files.cpp -o libfileslib.so -I./
+>gcc main.cpp -lstdc++ -lfileslib -I./ -L./
+>./a.out files.hpp
+#ifndef FILES
+#define FILES
+#include <string>
+
+namespace files {
+
+  void printFile(std::string filePath);
+
+  int countLines(std::string filePath);
+
+  int countWords(std::string filePath);
+
+  void printUniqueWords(std::string filePath);
+};
+
+#endif
+Lines found: 17
+Words found: 23
+Unique words found:
+#define
+#endif
+#ifndef
+#include
+<string>
+FILES
+countLines(std::string
+countWords(std::string
+filePath);
+files
+int
+namespace
+printFile(std::string
+printUniqueWords(std::string
+void
+{
+};
+````
+
+A less manual way to build the code is used in the GitHub repository:
+
+````{.bash}
+>git clone https://github.com/julitopower/cplusplusbaremetal.git
+>cd cplusplusbaremetal/fileslib/
+>mkdir build
+>cd build
+>cmake ..
+>make
+>cd apps/
+>./files /tmp/afile
+````
+
+# Tests
+
+The code in Github contains a set of tests for the file library. Those tests are written using [Boost Unit Test Framework](http://www.boost.org/doc/libs/1_44_0/libs/test/doc/html/utf.html):
+
+dummyfile use to control the result of the executions:
+
+````{.bash}
+line1 word2
+  line2 word4
+
+
+
+line 6
+````
+
+Tests for Line counting:
+
+````{.cpp}
+#define BOOST_TEST_MODULE LineCountTests
+#include <boost/test/unit_test.hpp>
+
+#include <files.hpp>
+
+using namespace files;
+
+BOOST_AUTO_TEST_CASE( testFileDoesNotExist )
+{
+  BOOST_CHECK_EQUAL(0, countLines(""));
+}
+
+
+BOOST_AUTO_TEST_CASE( testLinesCount )
+{
+  BOOST_CHECK_EQUAL(6, countLines("./dummyfile"));
+}
+````
+
+Tests for Word counting.
+
+````{.cpp}
+#define BOOST_TEST_MODULE WordCountTests
+#include <boost/test/unit_test.hpp>
+
+#include <files.hpp>
+
+using namespace files;
+
+BOOST_AUTO_TEST_CASE( testFileDoesNotExist )
+{
+  BOOST_CHECK_EQUAL(0, countWords(""));
+}
+
+
+BOOST_AUTO_TEST_CASE( testWordsCount )
+{
+  BOOST_CHECK_EQUAL(6, countWords("./dummyfile"));
+}
+````

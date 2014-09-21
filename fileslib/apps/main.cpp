@@ -8,8 +8,8 @@ int main(int argc, char** argv) {
   }
 
   files::printFile(argv[1]);
-  std::cout << files::countLines(argv[1]) << std::endl;
-  std::cout << files::countWords(argv[1]) << std::endl;
+  std::cout << "Lines found: " << files::countLines(argv[1]) << std::endl;
+  std::cout << "Words found: " << files::countWords(argv[1]) << std::endl;
+  std::cout << "Unique words found:" << std::endl;
   files::printUniqueWords(argv[1]);
-
 }
