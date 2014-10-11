@@ -1,0 +1,71 @@
+Following a long standing tradition, every programming blog/book must introduce readers to the language by showing them how to send a greeting message to the world. Here comes a Hello World implementation in C++:
+
+````{.cpp}
+#include <iostream>
+
+using namespace std;
+
+int main(int argc, char** argv) {
+  cout << "Hello World" << endl;
+}
+````
+
+Simple isn't it? We  are doing a couple of things in this code:
+
+* We are "including"/"importing" the standard InputOutput library. By doing this we are going to be able to use all the types, functions, variables and so on defined it it
+* Then we are making the entire std namespace visible. This is not something we should do in production code, but for this very simple example is ok. By doing this we can use cout instead of std::cout, and endl instead of std::endl
+* Then we define the main method. The main method is the entry point for execution. Every executable C++ project must have a main method.
+* Finally we use the facilities provided by the standard InputOutput library to display the message "Hello World" on the screen.
+
+C++ is a [compiled](http://en.wikipedia.org/wiki/Compiled_language) language. That means that before we can execute our program we have to compile it. Compilation means translating the source code into something the OS and underlying machine know how to execute. Let's do it!
+
+First we need to make sure he have a C++ compiler available in our development machine. I am using Linux and the [gcc](https://gcc.gnu.org/) compiler:
+
+````{.bash}
+>gcc -v
+ Using built-in specs.
+ COLLECT_GCC=gcc
+ COLLECT_LTO_WRAPPER=/usr/lib/gcc/i486-linux-gnu/4.7/lto-wrapper
+ Target: i486-linux-gnu
+ Configured with: ../src/configure -v --with-pkgversion='Debian 4.7.2-5' --with-bugurl=file:///usr/share/doc/gcc-4.7/README.Bugs --enable-languages=c,c++,go,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.7 --enable-shared --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.7 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --enable-plugin --enable-objc-gc --enable-targets=all --with-arch-32=i586 --with-tune=generic --enable-checking=release --build=i486-linux-gnu --host=i486-linux-gnu --target=i486-linux-gnu
+ Thread model: posix
+ gcc version 4.7.2 (Debian 4.7.2-5)  
+````
+
+The command displayed a bunch of information about the compiler. The most important bit is the version, which in my case is 4.7.2. For this example you don't need any particular version. Now, let's compile the code:
+
+````{.bash}
+ >gcc main.cpp -o executable
+ /tmp/ccHNwUgh.o: In function `main':
+ main.cpp:(.text+0x14): undefined reference to `std::cout'
+ main.cpp:(.text+0x19): undefined reference to `std::basic_ostream<char, std::char_traits<char> >& std::operator<< <std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*)'
+ main.cpp:(.text+0x21): undefined reference to `std::basic_ostream<char, std::char_traits<char> >& std::endl<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&)'
+ main.cpp:(.text+0x29): undefined reference to `std::ostream::operator<<(std::ostream& (*)(std::ostream&))'
+ /tmp/ccHNwUgh.o: In function `__static_initialization_and_destruction_0(int, int)':
+ main.cpp:(.text+0x51): undefined reference to `std::ios_base::Init::Init()'
+ main.cpp:(.text+0x68): undefined reference to `std::ios_base::Init::~Init()'
+ collect2: error: ld returned 1 exit status  
+````
+
+_Wait a second!_ __An error!__ I though you were going to teach us how to write C++, and now you are not able to compile the simplest code? Don't panic. I did this in purpose. The compiler is letting us know that it __cannot find std::cout__ and other members of the std namespace and the iostream library. The problem is that the include statement makes the compiler aware of the existence of a bunch of symbols, but says nothing about what those symbols actually do, their implementation. The implementation is contained in a library binary file, so we must tell the compiler what libraries we must check in order to find the actual meaning of the symbols:
+
+````{.bash}
+ >gcc main.cpp -o executable -lstdc++
+ >ls
+ executable main.cpp
+````
+
+_Ok, that looks better_. Let's execute our super friendly program:
+
+````{.bash}
+ >./executable
+ Hello World  
+````
+
+Trully awesome indeed!
+
+You can find all the code used in this blog in github [https://github.com/julitopower/cplusplusbaremetal](https://github.com/julitopower/cplusplusbaremetal). Feel free to clone the repository and mess around with the code.
+
+I'll be adding an entry soon explaining how to install a compiler in Windows, Mac OS, and Linux.
+
+Enjoy!
