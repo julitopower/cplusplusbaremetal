@@ -1,0 +1,229 @@
+#C++ Templates
+
+One of the programming techniques supported by C++ is [generic programming](http://en.wikipedia.org/wiki/Generic_programming). Using this technique is possible to define data structures and algorithms that work for arbitrary types. Ones of the most typical uses of generic programming is the design of [containers](http://en.wikipedia.org/wiki/Container_(abstract_data_type)). Containers are data structures that can contain any type of elements inside them, like lists, maps, trees, etc.
+
+Generic programming is supported in C++ by means of [templates](http://en.wikipedia.org/wiki/Template_(C%2B%2B)). Templates do not add any kind of runtime overhead. All the necessary computations and type checks are performed at compile time.
+
+## Templates basic syntax
+
+Templates syntax is somehow verbose, but once you get used to it, you shouldn't have any problems. Lets define a generic function whose only purpose is to print whatever argument is passed to it:
+
+````{.cpp}
+#include <iostream>
+
+template <typename T>
+void print(T arg)
+{
+  std::cout << arg << std::endl;
+}
+````
+
+_template <typename T>_ is informing the compiler that the following method is going to be parameterized on a type, that we will be calling T. Then when defining the type of the argument, we use our type parameter T. How do we use it? Easy!
+
+````{cpp}
+void main() {
+     print(2);
+     print('c');
+     print("Hello world");
+}
+````
+
+Let's compile and execute:
+````{.cpp}
+>gcc main.cpp -lstdc++
+>a.out
+2
+c
+Hello world
+````
+
+#Templates and compilation units
+
+See [this link](http://publib.boulder.ibm.com/infocenter/macxhelp/v6v81/index.jsp?topic=%2Fcom.ibm.vacpp6m.doc%2Fcompiler%2Fref%2Ftutmplat4.htm) for more information.
+
+The compiler must have access to both the definition and the declaration of the template data structures and algorithms becase it has to create new complete types at compile type. For that reason is is common to include both definition and declaration in the header files.
+
+If you don't do so you'll get linking errors.
+
+#Generic Binary Tree
+
+Now that we have gone through the very basics, I'll show you a more advanced example (although it is still very basic level). We are going to build and test a Generic Binary Tree.
+
+All the code and build files (CMake) for this example can be found in [GitHub](https://github.com/julitopower/cplusplusbaremetal/tree/master/generic_tree). I have chose to split implementation and interface (definition) of the tree, but in a way that both are alwasy available to any compilation unit using them. I have put the implementation in a file called __tree.hpp__ and the implementation in a file __tree.ipp__ which inclides the header. Consumers are supposed to include the __.ipp__ file:
+
+````{cpp}
+#ifndef TREE
+#define TREE
+
+#include <list>
+
+using std::list;
+
+namespace tree {
+
+  template<class T> class TreeNode;
+  
+  template<class T>
+  class Tree {
+  public:
+    Tree() : _root(0)
+    {}
+
+    ~Tree()
+    {
+      if (_root != 0 )
+	delete _root;
+    }
+
+    void add(T value);
+    bool contains(T value);
+    list<T> *inOrder();
+  private:
+    TreeNode<T> *_root;
+  };
+
+  template<class T>
+  class TreeNode {
+  public:
+    TreeNode(const T& value) : value(value), left(0), right(0)
+    {}
+
+    ~TreeNode()
+    {
+      if (left != 0)
+	delete left;
+      if (right != 0)
+	delete right;
+    }
+
+    T value;
+    TreeNode *left;
+    TreeNode *right;
+  };
+}
+
+#endif // TREE
+
+````
+
+And the actual implementation:
+
+````{cpp}
+#ifndef TREE_IPP
+#define TREE_IPP
+
+#include <Tree.hpp>
+
+namespace tree {
+
+  template<class T>
+  void Tree<T>::add(T value) {
+    _root = addToNode(_root, value);
+  }
+
+  template<class T> TreeNode<T> * addToNode(TreeNode<T> *node, T value) {
+    if (node == 0)
+      return new TreeNode<T>(value);
+    if (value > node->value)
+      node->right = addToNode(node->right, value);
+    else if (value < node->value)
+      node->left = addToNode(node->left, value);
+    return node;
+  }
+
+
+  template<class T>
+  list<T> * Tree<T>::inOrder() {
+    list<T> *l = new list<T>();
+    inorder(_root, *l);
+    return l;
+  }
+
+  template<class T> void inorder(TreeNode<T> *node, list<T> &l) {
+    if (node == 0)
+      return;
+    inorder(node->left, l);
+    l.push_back(node->value);
+    inorder(node->right, l);
+  }
+}
+
+#endif //TREE_IPP
+````
+
+This code is definitelly simplistic, and tremendously unsafe. For instance any user can access and modify the left/right links of a TreeNode. However is is enough for our didactic purposes ;). Also noticed how the __contains__ methods has been left unimplemented. Feel free to come up with your own implementation.
+
+##Tests
+
+The tests are pretty straight forward.
+
+* Test that right after construction the size is 0
+* Test that after adding 1 element the size is 1, and the element is returned when traversing the tree
+* Test that after adding several elements, and in order traversal returns the right elements in the right order
+* ...
+
+I haven't added every possible tests, but this should definitelly get you going. For instance you could add a few tests dealing with the insertion of duplicated elements. What should be the behavior of the tree in this situation? I'll let you figure it out.
+
+````{cpp}
+#define BOOST_TEST_MODULE TreeTests
+
+#include <boost/test/unit_test.hpp>
+#include <Tree.ipp>
+#include <string>
+
+using namespace tree;
+
+BOOST_AUTO_TEST_CASE( ConstructorTest )
+{
+  Tree<int> t;
+  BOOST_CHECK_EQUAL(0, t.inOrder()->size());
+}
+
+BOOST_AUTO_TEST_CASE( AddOneElementTest )
+{
+  Tree<int> t;
+  t.add(3);
+  std::list<int> *listInOrder = t.inOrder();
+  BOOST_CHECK_EQUAL(1, listInOrder->size());
+  BOOST_CHECK_EQUAL(3, listInOrder->front());
+  delete listInOrder;
+}
+
+BOOST_AUTO_TEST_CASE( InOrderTest )
+{
+  Tree<int> t;
+  t.add(3);
+  t.add(5);
+  t.add(4);
+  std::list<int> l;
+  l.push_back(3);
+  l.push_back(4);
+  l.push_back(5);
+  std::list<int> *listInOrder = t.inOrder();
+  BOOST_CHECK_EQUAL(3, listInOrder->size());
+  for (std::list<int>::iterator it = l.begin() ; it != l.end() ; ++it) {
+    BOOST_CHECK_EQUAL(*it, listInOrder->front());
+    listInOrder->pop_front();
+  }
+  delete listInOrder;
+}
+
+BOOST_AUTO_TEST_CASE( AddOneElementStringTest )
+{
+  Tree<std::string> t;
+  t.add("there");
+  t.add("hi");
+  std::list<std::string> *listInOrder = t.inOrder();
+  BOOST_CHECK_EQUAL(2, listInOrder->size());
+  BOOST_CHECK_EQUAL("hi", listInOrder->front());
+  listInOrder->pop_front();
+  BOOST_CHECK_EQUAL("there", listInOrder->front());
+  delete listInOrder;
+}
+````
+
+# What's next
+
+This has been a very basic introduction to templates and generic programming in C++. Templates allow extremely powerful (and complex) techniques. If you are brave enough give a look to the code the the [standard library](https://www.sgi.com/tech/stl/download.html) or the [Boost libraries](http://svn.boost.org/svn/boost/trunk/).
+
+Enjoy!
