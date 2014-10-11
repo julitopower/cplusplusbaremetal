@@ -15,6 +15,5 @@ enable_testing()
 include_directories(./include)
 
 # Instruct CMake to inspect the following subfolders
-add_subdirectory(src)
 add_subdirectory(apps)
 add_subdirectory(test)
