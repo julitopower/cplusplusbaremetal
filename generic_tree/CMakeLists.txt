@@ -17,3 +17,4 @@ include_directories(./include)
 # Instruct CMake to inspect the following subfolders
 add_subdirectory(apps)
 add_subdirectory(test)
+add_subdirectory(include)

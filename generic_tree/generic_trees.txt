@@ -20,7 +20,7 @@ void print(T arg)
 
 _template <typename T>_ is informing the compiler that the following method is going to be parameterized on a type, that we will be calling T. Then when defining the type of the argument, we use our type parameter T. How do we use it? Easy!
 
-````{cpp}
+````{.cpp}
 void main() {
      print(2);
      print('c');
@@ -51,7 +51,7 @@ Now that we have gone through the very basics, I'll show you a more advanced exa
 
 All the code and build files (CMake) for this example can be found in [GitHub](https://github.com/julitopower/cplusplusbaremetal/tree/master/generic_tree). I have chose to split implementation and interface (definition) of the tree, but in a way that both are alwasy available to any compilation unit using them. I have put the implementation in a file called __tree.hpp__ and the implementation in a file __tree.ipp__ which inclides the header. Consumers are supposed to include the __.ipp__ file:
 
-````{cpp}
+````{.cpp}
 #ifndef TREE
 #define TREE
 
@@ -108,7 +108,7 @@ namespace tree {
 
 And the actual implementation:
 
-````{cpp}
+````{.cpp}
 #ifndef TREE_IPP
 #define TREE_IPP
 
@@ -164,7 +164,7 @@ The tests are pretty straight forward.
 
 I haven't added every possible tests, but this should definitelly get you going. For instance you could add a few tests dealing with the insertion of duplicated elements. What should be the behavior of the tree in this situation? I'll let you figure it out.
 
-````{cpp}
+````{.cpp}
 #define BOOST_TEST_MODULE TreeTests
 
 #include <boost/test/unit_test.hpp>
