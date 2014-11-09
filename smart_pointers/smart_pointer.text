@@ -1,0 +1,276 @@
+#Introduction
+
+A pointer is a variable that holds the address of a memory block in which an actual value is stored. This value pointed to can be anything, included another pointer. Pointers can point to data stored in the stack,  data stored in the free store (heap), or functions. (_note: this post uses C++11 features although smart pointers have been available in previous verions of the language in the STL and Boost libraries_).
+
+````{.cpp}
+// Value stored in the stack
+int a = 23;
+
+// Pointer to the value in the stack
+int * p_a = &a;
+
+// Pointer to a value in the free store
+int * p_heap = new int {25};
+````
+
+Most of the time pointers are use to reference values on the free store. Using this mechanism a program can create as many values as the memory allows. The number of variables created need not be knows at copilation time. However, allocating memory on the free store is an expensive operation compared to creating a value on the stack, and the free store memory must be released, or our program will have memory leaks:
+
+````{.cpp}
+
+void do_something(int * p_int) {
+    delete p_int;
+}
+
+int main(int argc, char** argv)
+{
+    int * b = nullptr;
+
+    // Each cycle we allocate memory but do not release it
+    // Memory Leak!
+    for(auto i = 0 ; i < 100 ; ++i)
+    {
+        b = new int {3};
+    }
+
+    // This function frees the pointer, but it is not obvious
+    // from the call
+    do_something(b);
+
+    // Attempt to free a pointer that has already been release
+    // Undefined behavior, probably dissaster
+    delete b;
+}
+
+````
+
+The takeaway message here is that manual __memory management is powerful, but very very tricky__. Here is where smart pointers come to help us. Smart pointers take care of some of the memory management tasks that are the programers responsability when using raw pointers. Smart pointers _wrap_ a raw pointer and take care of releasing it. Different smart pointer manage memory in different ways, and are helpful in different situations
+
+## RAII: Resource Adquisition Is Initialization
+
+[RAII](http://en.wikipedia.org/wiki/Resource_Acquisition_Is_Initialization) is a term coined by [Bjarne Stroustrup](http://www.stroustrup.com/), and it refers to a pattern for exception-safe resource management. Quoting wikipedia:
+
+_In RAII, holding a resource is tied to object lifetime: resource allocation (acquisition) is done during object creation (specifically initialization), by the constructor, while resource deallocation (release) is done during object destruction, by the destructor. If objects are destructed properly, resource leaks do not occur._
+
+Smart pointers can be consider an implementation of RAII in which the resource is the underlying raw pointer.
+
+#unique_ptr
+
+Unique pointers release the raw pointer they own when they are destructed. In other words, they take full ownership of the raw pointer they wrap. A unique pointer created on the stack (which is the only place where they are supposed to be created) will _free_ its pointer when it goes out of scope. Unique pointers are not copiable, but they provide operations to transfer ownership of its pointer, or to replace the pointer owned by a new one. Let's see a quick example:
+
+````{.cpp}
+#include <iostream>
+#include <string>
+#include <memory>
+#include <cassert>
+#include <vector>
+
+namespace {
+
+  class Book {
+  public:
+    Book(std::string & name) : _name(name) {}
+    Book(std::string && name) : _name(name) {}
+
+    ~Book() { std::cout << "Destructing book " << _name << std::endl; }
+
+    std::string getName() const { return _name; }
+
+  private:
+    std::string _name;
+  };
+
+}
+
+// Alias for unique pointer to a Book
+using bookPtr = std::unique_ptr<Book>;
+
+int main(int argc, char** argv) {
+  // Create a unique pointer to a book
+  auto book = bookPtr { new Book {"My Awesome Book 1"} };
+  
+  // Unique pointer is not copiable but it is movable
+  // Ownership is transferred to book2
+  auto book2 = std::move(book);
+  
+  //book is now empty
+  assert(!book);
+
+  // And now book2 owns the pointer
+  std::cout << "book2 owns " << book2.get()->getName() << std::endl;
+  
+  // Let's store the pointers in a vector
+  auto v = std::vector<bookPtr>{};
+
+  // Again we have to move, becuase unique_ptr in not copiable
+  v.push_back(std::move(book2));
+  v.push_back(bookPtr {new Book("Another book")});
+
+  // Now book2 is empty
+  assert(!book2);
+
+  // And the books are in the vector
+  for(auto it = v.begin() ; it != v.end() ; ++it)
+  {
+    std::cout << "vector contains " << (*it)->getName() << std::endl;
+  }
+  
+  // We can get a unique pointer out of the list by moving it
+  book = std::move(v.front());
+
+  // The unique pointer left in the vector is empty but safe for destruction
+  assert(!v.front());
+
+  // Let's pop the back of the vector, where Another book is stored
+  // This will cause the destruction of Another book.
+  v.pop_back();
+
+  std::cout << "I should see this message after the destructor of Another book gets called" << std::endl;
+  return 0;
+
+  // When we go out of scope, book will be destroyed, and it will free its owned pointer
+  // which in this case points to My Awesome Book 1
+}
+````
+
+#shared_ptr
+
+A share pointer keeps a count of how many other shared pointers wrap the same raw pointer, and __only releases its pointer when that count goes to 0__. Shared pointers express the semantics of __shared ownership__. For instance we can have a number of objects on a Map, and have a processor every now and them come, pick up one element and do something with it. Instead of getting the object from the map, processing it, and putting it back, we can just leave it there, and use have the processor just get a reference to it (a copy of the pointer). Shared pointers are copiable.
+
+````{.cpp}
+#include <iostream>
+#include <string>
+#include <memory>
+#include <cassert>
+#include <vector>
+
+namespace {
+
+  class Book {
+  public:
+    Book(std::string & name) : _name(name) {}
+    Book(std::string && name) : _name(name) {}
+
+    ~Book() { std::cout << "Destructing book " << _name << std::endl; }
+
+    std::string getName() const { return _name; }
+
+  private:
+    std::string _name;
+  };
+
+}
+
+// Alias for shared pointer to a Book
+using bookPtr = std::shared_ptr<Book>;
+
+int main(int argc, char** argv) {
+  // Create a shared pointer to a book
+  auto book = bookPtr { new Book {"My Awesome Book 1"} };
+  
+  // Create another shared pointer pointing to the same book
+  // This will increment the reference counter on the shared pointer
+  auto book2 = book;
+  
+  // Both books have value
+  assert(book && book2);
+
+  // Let's store the pointers in a vector
+  auto v = std::vector<bookPtr>{};
+
+  v.push_back(book);
+  v.push_back(book2); 
+  v.push_back(bookPtr {new Book("Another book")});
+  
+  //At this stage there are 4 shared pointers pointing too May Awesome Book 1
+  assert(book.use_count() == 4);
+
+  // Both pointers are still valid
+  assert(book && book2);
+
+  // And the books are in the vector
+  for(auto it = v.begin() ; it != v.end() ; ++it)
+  {
+    std::cout << "vector contains " << (*it)->getName() << std::endl;
+  }
+  
+  // We can get a value from the vector using yet another shared pointer
+  bookPtr book3 = v.front();
+  assert(book.use_count() == 5);
+
+  // The unique pointer left in the vector is intact
+  assert(v.front());
+
+  // A smart pointer is going to be removed from the Map. Becuase there is only
+  // one smart pointer pointing to Another Book, the memory is going to be released.
+  v.pop_back();
+
+  std::cout << "I should see this message after the destructor of Another book gets called" << std::endl;
+
+  // No memory is released here, becuase all the pointers left in the vector are also in book and book2
+
+  std::cout << "No detructor called between this and the previous message" << std::endl;
+  assert(book && book2);
+
+  return 0;
+
+  // Finally when all the shared pointers go out of scope, the last one for each raw pointer will
+  // actually release it.
+}
+
+````
+
+#Advice
+
+* Use unique pointer by default
+* If you need to express share ownership use shared pointer
+* Be aware the shared pointer has a slight overhead because of the need to maintain a reference counter
+* Unique pointer introduces little or no overhead at all
+* All the accesses to the raw pointer must be done via the smart pointers
+* Do not pass the raw pointer from one smart pointer to another manually
+* Do not store pointers to variables created on the stack in smart pointers, they can not be released
+
+# Common mistakes
+
+This section shows code snippets of typical missuses of smart pointers:
+
+Manually creating two unique pointers to the same raw pointer:
+
+````{.cpp}
+int * a = new int {23};
+auto p1 = std::unique_ptr<int>{a};
+
+if (a > 10) {
+   auto p2 = std::unique_ptr<int>{a};
+} // ups p2 releases a
+
+//When p1 goes out of scope will try to release a again. Undefined behavior.
+
+````
+
+Extract pointer to shared and create a new shared:
+
+````{.cpp}
+auto shared = std::shared_ptr<int>(new int {3});
+auto shared2 = std::shared_ptr<int>(shared.get()); // Ups shared and shared2 are not aware of each other
+
+//when shared2 goes out of scope it will release the raw pointer
+//when shared goes out of scope it will try to release the raw pointer again. Undefined behavior.
+
+````
+
+Store addresses to stack variables:
+
+````{.cpp}
+
+int a = 23;
+
+auto ptr = std::unique_ptr<int>(&a); // Ups address of variable on the stack
+
+// When ptr goes out of scope it will try to release a, which is not releasable since it lives on the stack.
+
+````
+
+
+__Do not forget that you can get all the code and text from this blog in [Github](https://github.com/julitopower/cplusplusbaremetal/tree/master/smart_pointers).__
+
+Enjoy!
