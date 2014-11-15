@@ -1,0 +1,48 @@
+#Introduction
+
+It is fairly common to provide information to an application via parameters passed via the command line. For instance whenever we want to tail a file we can instruct the command to show us the last N lines:
+
+````{.bash}
+tail filename -n 100
+````
+
+Parsing the command line arguments is a tedious and error prone task that you should not be programming yourself. Instead, in this post I'll show you how to use TCLAP, a small library that takes care of this argument parsing business for us.
+
+#TCLAP
+
+[TCLAP](http://tclap.sourceforge.net/) is a multiplatform header only library, that should compile without problems in any major compiler. It's interface is very clean, and overal is very easy to use. The steps you need to take in order to get your command line argments parsed are:
+
+````{.cpp}
+1.- Create a command line parser object
+2.- Define your arguments (flags, name, defautl value, ...)
+3.- Add your arguments to the parser
+4.- Provice argc, and argv to the parser, so that it can actually parse
+4.- Access the values using the argument objects you defined in step 2
+````
+
+And in actual code all this look very simple:
+
+````{.cpp}
+#include <iostream>
+#include <string>
+#include <tclap/CmdLine.h>
+
+int main(int argc, char** argv) {
+  std::cout << "Hi there" << std::endl;
+
+  TCLAP::CmdLine cli("Testing command line argument parsing library", ' ', "1.0");
+  TCLAP::ValueArg<int> times("t", "times", "Number of iterations", true, 10,"integer");
+  cli.add(times);
+  cli.parse(argc, argv);
+  for(auto i = 0 ; i < times.getValue() ; ++i)
+    std::cout << i << std::endl;
+}
+````
+
+TCLAP provides an excellent [online manual](http://tclap.sourceforge.net/manual.html) that should get you going in almost not time.
+
+#Wrapping up
+
+As usual all the code and text in this post can be found in github:
+
+[https://github.com/julitopower/cplusplusbaremetal/tree/master/command_line_arguments](https://github.com/julitopower/cplusplusbaremetal/tree/master/command_line_arguments)
