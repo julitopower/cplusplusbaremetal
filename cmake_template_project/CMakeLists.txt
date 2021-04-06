@@ -1,8 +1,11 @@
 # Specify the minimum CMAKE version required
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.2)
 
 # Your project's name
 project(files_library)
+
+# Set C++17
+set(CMAKE_CXX_STANDARD 17)
 
 # We use BOOST unit test framework, so we need to specify it
 # This line guarantee that Boost is present and creates
