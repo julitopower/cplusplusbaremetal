@@ -1,0 +1,11 @@
+name: dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - clangdev
+  - cmake=3.18.0
+  - emacs
+  - gtest=1.10.0  
+  - libclang
+  - make
