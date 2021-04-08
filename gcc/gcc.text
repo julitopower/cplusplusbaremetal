@@ -1,8 +1,10 @@
 GCC, the GNU Compiler Collection, is the leader open source compiler. We are going to use it to compile C++ code, but it can also compile C, Fortran, Objective-C, Ada, and others.
 
+Clang is also a great C++ compiler, which you should also consider, specially because its error messages tend to be more clear.
+
 # Linux
 
-If you are using any flavor of Linux, changes are that your distribution comes with GCC bundled in it. Try the following:
+If you are using any flavor of Linux, chances are that your distribution comes with GCC bundled in it. Try the following:
 
 ````bash
 >gcc -v
@@ -38,7 +40,7 @@ If the output you get looks anywhere similar to the above you can proceed to ins
 >sudo apt-get install build-essential 
 ````
 
-Other Linux distributions use othe package managers, but the process is analogous.
+Other Linux distributions use different package managers, but the process is analogous.
 
 # Mac OS
 
@@ -51,12 +53,12 @@ Follow the instructions provided in the link:
 My recommendation here is plain and simple, *do not use Windows*. I know this is not an option for many people, so my recommendation number 2 is to run Linux in a virtual machine inside Windows. [Vagrant](www.vagrantup.com) and [VirtualBox](www.virtualbox.org) can be used together to provision local Virtual Machines in a super straight forward way. Both are excellent open source tools.
 
 
-Another possibility is to sign up for the **free [Amazon AWS account](http://aws.amazon.com/free/)**. You can use a Virtual Machine in the cloud for 1 year absolutely free. Check it out, it is pretty cool. Amazon Virtual Computing resources are called [EC2](http://aws.amazon.com/ec2/).
+Another possibility is to sign up for the **free [Amazon AWS account](http://aws.amazon.com/free/)**. You can use a Virtual Machine in the cloud for 1 year absolutely free. Check it out, it is pretty cool. Amazon Virtual Computing resources are called [EC2](http://aws.amazon.com/ec2/), for Elactic Cloud Compute.
 
 
-If you still want to continue using Windows, I have not very good news for you. There is no version of GCC that is able to run natively in Windows. In order to install GCC you have to install either [MingGW](www.mingw.org) or [Cygwin](www.cygwin.com). There two project provide ports to Windows of many useful Linux tools.
+If you still want to continue using Windows, I have not very good news for you. There is no version of GCC that is able to run natively in Windows. In order to install GCC you have to install either [MingGW](www.mingw.org) or [Cygwin](www.cygwin.com). The two projects provide ports to Windows of many useful Linux tools.
 
 
 # Wrapping up
 
-You should be all set now. Make sure you are able to compile and run our [C++ Hello World](http://cplusplusbaremetal.blogspot.ie/2014/08/hello-world-in-c-cpp-hello-world.html) program.
+You should be all set by now. Make sure you are able to compile and run our [C++ Hello World](http://cplusplusbaremetal.blogspot.ie/2014/08/hello-world-in-c-cpp-hello-world.html) program.
